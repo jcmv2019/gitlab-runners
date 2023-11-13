@@ -21,8 +21,8 @@ on:
       CI_PIPELINE_ID:
         description: Gitlab pipeline ID
         required: true
-      RUNNER_TAG:
-        description: Gitlab runner tag
+      RUNNER_TAGS:
+        description: Gitlab runner tags
         required: true
       RUNNER_EXECUTOR: 
         description: Gitlab runner executor
@@ -41,7 +41,7 @@ jobs:
        GITLAB_INSTANCE_URL: ${{ github.event.inputs.GITLAB_INSTANCE_URL }}
        CI_API_URL: ${{ github.event.inputs.CI_API_URL }}
        CI_PIPELINE_ID: ${{ github.event.inputs.CI_PIPELINE_ID }}
-       RUNNER_TAG: ${{ github.event.inputs.RUNNER_TAG }}
+       RUNNER_TAGS: ${{ github.event.inputs.RUNNER_TAGS }}
        EXECUTOR: ${{ github.event.inputs.RUNNER_EXECUTOR }}
        SCRIPT_LANGUAGE: ${{ github.event.inputs.RUNNER_SHELL_LANGUAGE }}
        PIPELINE_CHECK_DELAY: 1200 # in seconds
@@ -70,8 +70,13 @@ jobs:
           $headers.Add("PRIVATE-TOKEN", $env:ACCESS_TOKEN)
 
           # Create runner
-          Write-Host "[INFO] The Gitlab runner name will be `"$RUNNER_NAME`" with tag `"$env:RUNNER_TAG`"."
-          $runnerResponse = Invoke-RestMethod -Method "POST" -Headers $headers -Uri "$($env:CI_API_URL)/user/runners?runner_type=project_type&project_id=$($env:PROJECT_ID)&description=$($RUNNER_NAME)&tag_list=$($env:RUNNER_TAG)&locked=true"
+          Write-Host "[INFO] The Gitlab runner name will be `"$RUNNER_NAME`" with tag(s) `"$env:RUNNER_TAGS`"."
+          $runnerTagArray = @()
+          $runnerTags = $($env:RUNNER_TAGS).split(",")
+          foreach($runnerTag in $runnerTags){
+            $runnerTagArray.Add($runnerTag)
+          }
+          $runnerResponse = Invoke-RestMethod -Method "POST" -Headers $headers -Uri "$($env:CI_API_URL)/user/runners?runner_type=project_type&project_id=$($env:PROJECT_ID)&description=$($RUNNER_NAME)&tag_list=$($runnerTagArray)&locked=true"
           $runnerToken = $runnerResponse | Select-Object token -ExpandProperty token
           $runnerId = $runnerResponse | Select-Object id -ExpandProperty id
 
