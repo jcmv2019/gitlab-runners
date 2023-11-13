@@ -74,7 +74,7 @@ jobs:
           $runnerTagArray = @()
           $runnerTags = $($env:RUNNER_TAGS).split(",")
           foreach($runnerTag in $runnerTags){
-            $runnerTagArray.Add($runnerTag)
+            $runnerTagArray += $runnerTag
           }
           $runnerResponse = Invoke-RestMethod -Method "POST" -Headers $headers -Uri "$($env:CI_API_URL)/user/runners?runner_type=project_type&project_id=$($env:PROJECT_ID)&description=$($RUNNER_NAME)&tag_list=$($runnerTagArray)&locked=true"
           $runnerToken = $runnerResponse | Select-Object token -ExpandProperty token
