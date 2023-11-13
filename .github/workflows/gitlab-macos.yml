@@ -1,10 +1,13 @@
-name: Gitlab-Runners
+name: Gitlab-MacOS
 
 on: 
   workflow_dispatch:
     inputs:
       ACCESS_TOKEN:
         description: Gitlab access token
+        required: true
+      PROJECT_NAME:
+        description: Gitlab project name
         required: true
       PROJECT_ID:
         description: Gitlab project ID
@@ -18,16 +21,29 @@ on:
       CI_PIPELINE_ID:
         description: Gitlab pipeline ID
         required: true
+      RUNNER_TAG:
+        description: Gitlab runner tag
+        required: true
+      RUNNER_EXECUTOR: 
+        description: Gitlab runner executor
+        required: true
+      RUNNER_SHELL_LANGUAGE: 
+        description: Gitlab runner shell language
+        required: true
 
 jobs:
   macos-gitlab-runner:
     runs-on: macos-latest
     env:
        ACCESS_TOKEN: ${{ github.event.inputs.ACCESS_TOKEN }}
+       PROJECT_NAME: ${{ github.event.inputs.PROJECT_NAME }}
        PROJECT_ID: ${{ github.event.inputs.PROJECT_ID }}
        GITLAB_INSTANCE_URL: ${{ github.event.inputs.GITLAB_INSTANCE_URL }}
        CI_API_URL: ${{ github.event.inputs.CI_API_URL }}
        CI_PIPELINE_ID: ${{ github.event.inputs.CI_PIPELINE_ID }}
+       RUNNER_TAG: ${{ github.event.inputs.RUNNER_TAG }}
+       EXECUTOR: ${{ github.event.inputs.RUNNER_EXECUTOR }}
+       SCRIPT_LANGUAGE: ${{ github.event.inputs.RUNNER_SHELL_LANGUAGE }}
        PIPELINE_CHECK_DELAY: 1200 # in seconds
     steps:
       - name: start-macos-gitlab-runner
@@ -47,24 +63,20 @@ jobs:
           $plistContent.Save($plistFile)
 
           # Gitlab CI/CD runner details
-          $PROJECT_NAME = "crmce-mobile"
-          $RUNNER_NAME = "github-$($PROJECT_NAME)-macos-docker-shared-runner-$($env:CI_PIPELINE_ID)"
-          $RUNNER_TAG = "powershell-ci-mac"
-          $EXECUTOR = "shell"
-          $SCRIPT_LANGUAGE = "pwsh"
+          $RUNNER_NAME = "github-$($env:PROJECT_NAME)-macos-docker-shared-runner-$($env:CI_PIPELINE_ID)"
 
           # Gitlab API headers
           $headers = New-Object "System.Collections.Generic.Dictionary[[String],[String]]"
           $headers.Add("PRIVATE-TOKEN", $env:ACCESS_TOKEN)
 
           # Create runner
-          Write-Host "[INFO] The Gitlab runner name will be `"$RUNNER_NAME`" with tag `"$RUNNER_TAG`"."
-          $runnerResponse = Invoke-RestMethod -Method "POST" -Headers $headers -Uri "$($env:CI_API_URL)/user/runners?runner_type=project_type&project_id=$($env:PROJECT_ID)&description=$($RUNNER_NAME)&tag_list=$($RUNNER_TAG)&locked=true"
+          Write-Host "[INFO] The Gitlab runner name will be `"$RUNNER_NAME`" with tag `"$env:RUNNER_TAG`"."
+          $runnerResponse = Invoke-RestMethod -Method "POST" -Headers $headers -Uri "$($env:CI_API_URL)/user/runners?runner_type=project_type&project_id=$($env:PROJECT_ID)&description=$($RUNNER_NAME)&tag_list=$($env:RUNNER_TAG)&locked=true"
           $runnerToken = $runnerResponse | Select-Object token -ExpandProperty token
           $runnerId = $runnerResponse | Select-Object id -ExpandProperty id
 
           # Register runner
-          gitlab-runner register --url $env:GITLAB_INSTANCE_URL --non-interactive --executor $EXECUTOR --shell $SCRIPT_LANGUAGE --token $runnerToken
+          gitlab-runner register --url $env:GITLAB_INSTANCE_URL --non-interactive --executor $env:EXECUTOR --shell $env:SCRIPT_LANGUAGE --token $runnerToken
 
           # Start Gitlab-Runner service
           brew services start Gitlab-Runner
