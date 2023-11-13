@@ -71,12 +71,8 @@ jobs:
 
           # Create runner
           Write-Host "[INFO] The Gitlab runner name will be `"$RUNNER_NAME`" with tag(s) `"$env:RUNNER_TAGS`"."
-          $runnerTagArray = @()
-          $runnerTags = $($env:RUNNER_TAGS).split(",")
-          foreach($runnerTag in $runnerTags){
-            $runnerTagArray += $runnerTag
-          }
-          $runnerResponse = Invoke-RestMethod -Method "POST" -Headers $headers -Uri "$($env:CI_API_URL)/user/runners?runner_type=project_type&project_id=$($env:PROJECT_ID)&description=$($RUNNER_NAME)&tag_list=$($runnerTagArray)&locked=true"
+          $runnerTags = $($env:RUNNER_TAGS).Replace(" ","").TrimStart().TrimEnd()
+          $runnerResponse = Invoke-RestMethod -Method "POST" -Headers $headers -Uri "$($env:CI_API_URL)/user/runners?runner_type=project_type&project_id=$($env:PROJECT_ID)&description=$($RUNNER_NAME)&tag_list=$($runnerTags)&locked=true"
           $runnerToken = $runnerResponse | Select-Object token -ExpandProperty token
           $runnerId = $runnerResponse | Select-Object id -ExpandProperty id
 
